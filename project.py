@@ -34,8 +34,8 @@ high_var_columns = [
 ]
 
 #crosscorelation to see if there's any dependencies.
-df_reduced = df.drop(columns=['Name'])
-
+df_reduced = df.drop(columns=['Name', 'Machine'])
+df_reduced = df_reduced[high_var_columns]
 correlation_matrix = df_reduced.corr()
 # Visualize the correlation matrix using a heatmap
 # plt.figure(figsize=(12, 10))
@@ -43,18 +43,20 @@ correlation_matrix = df_reduced.corr()
 # plt.title('Correlation Matrix')
 #plt.show()
 
-threshold = 0.5
-strong_correlations = correlation_matrix[correlation_matrix.abs() > threshold]
+strong_correlations = correlation_matrix[correlation_matrix.abs() > 0.5]
+strong_correlations = strong_correlations[strong_correlations.abs() < 0.95]
 strong_pairs = strong_correlations.unstack().dropna().sort_values(ascending=False)
 strong_pairs = strong_pairs[strong_pairs < 1]
-#print("Strongly correlated feature pairs:")
-#print(strong_pairs)
+print("Strongly correlated feature pairs:")
+print(strong_pairs)
 
 strong_pairs_columns = set()
 for pair in strong_pairs.index:
     strong_pairs_columns.add(pair[0])
     strong_pairs_columns.add(pair[1])
 df_reduced_strong = df[list(strong_pairs_columns)]
+
+print(list(strong_pairs_columns))
 
 # Standardize the data
 scaler = StandardScaler()
@@ -64,27 +66,47 @@ df_scaled = scaler.fit_transform(df_reduced_strong)
 kmeans = KMeans(n_clusters=3, random_state=42)
 df_reduced_strong['Cluster'] = kmeans.fit_predict(df_scaled)
 
-# PCA for dimensionality reduction
-pca = PCA(n_components=2)
-df_pca = pca.fit_transform(df_scaled)
-df_reduced_strong['PCA1'] = df_pca[:, 0]
-df_reduced_strong['PCA2'] = df_pca[:, 1]
+# # PCA for dimensionality reduction
+# pca = PCA(n_components=2)
+# df_pca = pca.fit_transform(df_scaled)
+# df_reduced_strong['PCA1'] = df_pca[:, 0]
+# df_reduced_strong['PCA2'] = df_pca[:, 1]
 
-# Plot PCA results with centroids
-plt.figure(figsize=(12, 10))
-sns.scatterplot(x='PCA1', y='PCA2', hue='Cluster', data=df_reduced_strong, palette='viridis')
-plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=300, c='red', marker='X', label='Centroids')
-plt.title('K-Means Clustering with PCA')
-plt.xlabel('PCA1')
-plt.ylabel('PCA2')
-plt.legend()
-plt.show()
+# # Plot PCA results with centroids
+# plt.figure(figsize=(12, 10))
+# sns.scatterplot(x='PCA1', y='PCA2', hue='Cluster', data=df_reduced_strong, palette='viridis')
+# plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=300, c='red', marker='X', label='Centroids')
+# plt.title('K-Means Clustering with PCA')
+# plt.xlabel('PCA1')
+# plt.ylabel('PCA2')
+# plt.legend()
+# plt.show()
 
-# t-SNE for dimensionality reduction
-tsne = TSNE(n_components=2, random_state=42)
-df_tsne = tsne.fit_transform(df_scaled)
-df_reduced_strong['TSNE1'] = df_tsne[:, 0]
-df_reduced_strong['TSNE2'] = df_tsne[:, 1]
+perplexities = [5, 10, 30, 50, 100]
+learning_rates = [10]
+best_score = -1
+best_params = None
+
+# Try different t-SNE configurations
+for perplexity in perplexities:
+    for lr in learning_rates:
+        tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="random", n_iter=1000)
+        tsne_results = tsne.fit_transform(df_scaled)
+
+        # Compute Silhouette Score
+        silhouette_avg = silhouette_score(df_scaled, tsne_results[:, 0])  
+        
+        print(f"Perplexity: {perplexity}, Learning Rate: {lr}, Silhouette Score: {silhouette_avg:.4f}")
+
+        if silhouette_avg > best_score:
+            df_tsne = tsne.fit_transform(df_scaled)
+            df_reduced_strong['TSNE1'] = df_tsne[:, 0]
+            df_reduced_strong['TSNE2'] = df_tsne[:, 1]
+
+            best_score = silhouette_avg
+            best_params = (perplexity, lr)
+
+print(f"\nBest Configuration -> Perplexity: {best_params[0]}, Learning Rate: {best_params[1]}, Silhouette Score: {best_score:.4f}")
 
 # Plot t-SNE results with centroids
 plt.figure(figsize=(12, 10))
