@@ -1,13 +1,18 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler,MinMaxScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, accuracy_score, confusion_matrix
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+import numpy as np
+import warnings
 
 df = pd.read_csv('dataset_malwares.csv')
+warnings.filterwarnings("ignore")
 
 for col in df.columns[1:]:
     data = df[col]
@@ -59,38 +64,33 @@ df_reduced_strong = df[list(strong_pairs_columns)]
 print(list(strong_pairs_columns))
 
 # Standardize the data
-scaler = StandardScaler()
+scaler = MinMaxScaler()
 df_scaled = scaler.fit_transform(df_reduced_strong)
 
-# Apply K-Means clustering
-kmeans = KMeans(n_clusters=3, random_state=42)
-df_reduced_strong['Cluster'] = kmeans.fit_predict(df_scaled)
+#PCA for dimensionality reduction
+pca = PCA(n_components=2)
+df_pca = pca.fit_transform(df_scaled)
+df_reduced_strong['PCA1'] = df_pca[:, 0]
+df_reduced_strong['PCA2'] = df_pca[:, 1]
 
-# # PCA for dimensionality reduction
-# pca = PCA(n_components=2)
-# df_pca = pca.fit_transform(df_scaled)
-# df_reduced_strong['PCA1'] = df_pca[:, 0]
-# df_reduced_strong['PCA2'] = df_pca[:, 1]
+# Plot PCA results with centroids
+plt.figure(figsize=(12, 10))
+sns.scatterplot(x='PCA1', y='PCA2', hue='Malware', data=df_reduced_strong, palette='viridis')
+plt.title('K-Means Clustering with PCA')
+plt.xlabel('PCA1')
+plt.ylabel('PCA2')
+plt.legend()
+plt.show()
 
-# # Plot PCA results with centroids
-# plt.figure(figsize=(12, 10))
-# sns.scatterplot(x='PCA1', y='PCA2', hue='Cluster', data=df_reduced_strong, palette='viridis')
-# plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=300, c='red', marker='X', label='Centroids')
-# plt.title('K-Means Clustering with PCA')
-# plt.xlabel('PCA1')
-# plt.ylabel('PCA2')
-# plt.legend()
-# plt.show()
-
-perplexities = [5, 10, 30, 50, 100]
+perplexities = [5]
 learning_rates = [10]
 best_score = -1
 best_params = None
 
-# Try different t-SNE configurations
+#Try different t-SNE configurations
 for perplexity in perplexities:
     for lr in learning_rates:
-        tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="random", n_iter=1000)
+        tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="pca", n_iter=1000)
         tsne_results = tsne.fit_transform(df_scaled)
 
         # Compute Silhouette Score
@@ -110,25 +110,73 @@ print(f"\nBest Configuration -> Perplexity: {best_params[0]}, Learning Rate: {be
 
 # Plot t-SNE results with centroids
 plt.figure(figsize=(12, 10))
-sns.scatterplot(x='TSNE1', y='TSNE2', hue='Cluster', data=df_reduced_strong, palette='viridis')
-plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=300, c='red', marker='X', label='Centroids')
+sns.scatterplot(x='TSNE1', y='TSNE2', hue='Malware', data=df_reduced_strong, palette='viridis')
 plt.title('K-Means Clustering with t-SNE')
 plt.xlabel('TSNE1')
 plt.ylabel('TSNE2')
 plt.legend()
 plt.show()
 
-# Silhouette Analysis
-silhouette_avg = silhouette_score(df_scaled, df_reduced_strong['Cluster'])
-print(f'Silhouette Score: {silhouette_avg}')
+# Define number of neighbors
+neighbors = 5
 
-# Visualize the clusters with centroids
-for pair in strong_pairs.index:
-    plt.figure(figsize=(12, 10))
-    sns.scatterplot(x=pair[0], y=pair[1], hue=df_reduced_strong['Cluster'], data=df_reduced_strong, palette='viridis', s=100, alpha=0.7, edgecolor='w', linewidth=0.5)
-    plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=300, c='red', marker='X', label='Centroids')
-    plt.title(f'K-Means Clustering: {pair[0]} vs {pair[1]}')
-    plt.xlabel(pair[0])
-    plt.ylabel(pair[1])
-    plt.legend()
-    plt.show()
+# Initialize K-Fold cross-validation with 10 folds
+kf = KFold(n_splits=10, shuffle=True, random_state=42)
+
+# Feature sets and target variable
+X_sets = [
+    df_reduced_strong.drop(columns=['Malware', 'PCA1', 'PCA2', 'TSNE1', 'TSNE2']),  # No reduction
+    df_reduced_strong[['PCA1', 'PCA2']],  # PCA
+    df_reduced_strong[['TSNE1', 'TSNE2']]  # t-SNE
+]
+Y = df_reduced_strong['Malware']
+
+# Scaling control: 1 = Apply scaler, 0 = No scaling
+scale = [1, 0, 0]
+
+print("----------------------------------------------------------------------------------------------")
+print("k-Nearest Neighbours")
+print("----------------------------------------------------------------------------------------------")
+
+# Iterate through each feature set (No Reduction, PCA, t-SNE)
+for feature_set_idx, X in enumerate(X_sets):
+    print(f"Feature Set {feature_set_idx + 1}: {'No Reduction' if feature_set_idx == 0 else 'PCA' if feature_set_idx == 1 else 't-SNE'}")
+    
+    accuracies = []
+    confusion_matrices_KNN = []
+
+    for i, (train_index, test_index) in enumerate(kf.split(X), start=1):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = Y.iloc[train_index], Y.iloc[test_index]
+
+        # Apply scaling only if scale[feature_set_idx] == 1
+        if scale[feature_set_idx] == 1:
+            X_train = scaler.fit_transform(X_train)
+            X_test = scaler.transform(X_test)  # Use transform instead of fit_transform
+
+        # Train KNN classifier
+        knn = KNeighborsClassifier(n_neighbors=neighbors)
+        knn.fit(X_train, y_train)
+
+        # Make predictions and compute accuracy
+        y_pred = knn.predict(X_test)
+        accuracies.append(accuracy_score(y_test, y_pred))
+
+        # Store confusion matrix
+        confusion_matrices_KNN.append(pd.DataFrame(
+            confusion_matrix(y_test, y_pred),
+            index=['Actual Yes', 'Actual No'],
+            columns=['Predicted Yes', 'Predicted No']
+        ))
+
+        print(f'Accuracy for KNN fold {i}: {accuracies[-1]}')
+
+    print("----------------------------------------------------------------------------------------------")
+    for i, cm in enumerate(confusion_matrices_KNN, start=1):
+        print(f'Confusion Matrix for KNN Fold {i}:')
+        print(cm)
+
+    print("----------------------------------------------------------------------------------------------")
+    mean_accuracy = np.mean(accuracies)
+    print(f'Mean Accuracy for KNN n={neighbors}: {mean_accuracy}')
+    print("----------------------------------------------------------------------------------------------")
