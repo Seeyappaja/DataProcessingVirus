@@ -8,6 +8,7 @@ from sklearn.metrics import silhouette_score, accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score, recall_score
 import numpy as np
 import warnings
 
@@ -39,8 +40,8 @@ high_var_columns = [
 ]
 
 #crosscorelation to see if there's any dependencies.
-df_reduced = df.drop(columns=['Name', 'Machine'])
-df_reduced = df_reduced[high_var_columns]
+df_reduced = df.drop(columns=['Name', 'Machine', 'Malware'])
+#df_reduced = df_reduced[high_var_columns]
 correlation_matrix = df_reduced.corr()
 # Visualize the correlation matrix using a heatmap
 # plt.figure(figsize=(12, 10))
@@ -60,16 +61,16 @@ for pair in strong_pairs.index:
     strong_pairs_columns.add(pair[0])
     strong_pairs_columns.add(pair[1])
 df_reduced_strong = df[list(strong_pairs_columns)]
-
-print(list(strong_pairs_columns))
+df_reduced_strong['Malware'] = df['Malware']
 
 # Standardize the data
-scaler = MinMaxScaler()
-df_scaled = scaler.fit_transform(df_reduced_strong)
+scaler = StandardScaler()
+#df_scaled = scaler.fit_transform(df_reduced_strong)
 
 #PCA for dimensionality reduction
 pca = PCA(n_components=2)
-df_pca = pca.fit_transform(df_scaled)
+#df_pca = pca.fit_transform(df_scaled)
+df_pca = pca.fit_transform(df_reduced_strong)
 df_reduced_strong['PCA1'] = df_pca[:, 0]
 df_reduced_strong['PCA2'] = df_pca[:, 1]
 
@@ -91,15 +92,18 @@ best_params = None
 for perplexity in perplexities:
     for lr in learning_rates:
         tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="pca", n_iter=1000)
-        tsne_results = tsne.fit_transform(df_scaled)
+        #tsne_results = tsne.fit_transform(df_scaled)
+        tsne_results = tsne.fit_transform(df_reduced_strong)
 
         # Compute Silhouette Score
-        silhouette_avg = silhouette_score(df_scaled, tsne_results[:, 0])  
+        #silhouette_avg = silhouette_score(df_scaled, tsne_results[:, 0])  
+        silhouette_avg = silhouette_score(df_reduced_strong, tsne_results[:, 0])  
         
         print(f"Perplexity: {perplexity}, Learning Rate: {lr}, Silhouette Score: {silhouette_avg:.4f}")
 
         if silhouette_avg > best_score:
-            df_tsne = tsne.fit_transform(df_scaled)
+            #df_tsne = tsne.fit_transform(df_scaled)
+            df_tsne = tsne.fit_transform(df_reduced_strong)
             df_reduced_strong['TSNE1'] = df_tsne[:, 0]
             df_reduced_strong['TSNE2'] = df_tsne[:, 1]
 
@@ -120,6 +124,8 @@ plt.show()
 # Define number of neighbors
 neighbors = 5
 
+validation_df = pd.read_csv('dataset_test.csv')
+
 # Initialize K-Fold cross-validation with 10 folds
 kf = KFold(n_splits=10, shuffle=True, random_state=42)
 
@@ -138,16 +144,19 @@ print("-------------------------------------------------------------------------
 print("k-Nearest Neighbours")
 print("----------------------------------------------------------------------------------------------")
 
-# Iterate through each feature set (No Reduction, PCA, t-SNE)
 for feature_set_idx, X in enumerate(X_sets):
     print(f"Feature Set {feature_set_idx + 1}: {'No Reduction' if feature_set_idx == 0 else 'PCA' if feature_set_idx == 1 else 't-SNE'}")
     
     accuracies = []
     confusion_matrices_KNN = []
 
-    for i, (train_index, test_index) in enumerate(kf.split(X), start=1):
-        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-        y_train, y_test = Y.iloc[train_index], Y.iloc[test_index]
+    best_model = None
+    best_accuracy = 0
+    best_scaler = None
+    best_reduction = None
+
+    for i in range(10):
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
 
         # Apply scaling only if scale[feature_set_idx] == 1
         if scale[feature_set_idx] == 1:
@@ -162,6 +171,16 @@ for feature_set_idx, X in enumerate(X_sets):
         y_pred = knn.predict(X_test)
         accuracies.append(accuracy_score(y_test, y_pred))
 
+        acc = accuracy_score(y_test, y_pred)
+        prec = precision_score(y_test, y_pred, zero_division=0)
+        rec = recall_score(y_test, y_pred, zero_division=0)
+
+        if acc > best_accuracy:
+            best_accuracy = acc
+            best_model = knn
+            best_scaler = scaler  # Save the corresponding scaler
+            best_reduction = feature_set_idx
+
         # Store confusion matrix
         confusion_matrices_KNN.append(pd.DataFrame(
             confusion_matrix(y_test, y_pred),
@@ -169,6 +188,9 @@ for feature_set_idx, X in enumerate(X_sets):
             columns=['Predicted Yes', 'Predicted No']
         ))
 
+        print(f'Accuracy: {acc:.4f}')
+        print(f'Precision: {prec:.4f}')
+        print(f'Recall: {rec:.4f}')
         print(f'Accuracy for KNN fold {i}: {accuracies[-1]}')
 
     print("----------------------------------------------------------------------------------------------")
@@ -180,3 +202,33 @@ for feature_set_idx, X in enumerate(X_sets):
     mean_accuracy = np.mean(accuracies)
     print(f'Mean Accuracy for KNN n={neighbors}: {mean_accuracy}')
     print("----------------------------------------------------------------------------------------------")
+
+
+Name = validation_df['Name']
+X_val = validation_df.drop(columns=['Name'])
+X_val = X_val[list(strong_pairs_columns - {"Malware"})]
+#df_scaled = best_scaler.fit_transform(X_val)
+
+if best_reduction == 1:
+    pca = PCA(n_components=2)
+    #df_pca = pca.fit_transform(df_scaled)
+    df_pca = pca.fit_transform(X_val)
+    validation_df['PCA1'] = df_pca[:, 0]
+    validation_df['PCA2'] = df_pca[:, 1]
+    
+    X_val = validation_df[['PCA1', 'PCA2']]
+elif best_reduction == 2:
+    tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="pca", n_iter=1000)
+    #tsne_results = tsne.fit_transform(df_scaled)
+    tsne_results = tsne.fit_transform(X_val)
+    validation_df['TSNE1'] = tsne_results[:, 0]
+    validation_df['TSNE2'] = tsne_results[:, 1]
+
+    X_val = validation_df[['TSNE1', 'TSNE2']]
+else:
+    X_val = best_scaler.transform(X_val)
+
+y_val_pred = best_model.predict(X_val)
+for i in range(y_val_pred.size):
+    label = "Malware" if y_val_pred[i] == 1 else "Not Malware"
+    print(f"Best model predicted {Name[i]} to be {label}")
