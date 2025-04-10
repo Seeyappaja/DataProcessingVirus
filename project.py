@@ -77,12 +77,12 @@ df_reduced_strong = df_reduced_strong[int(len(df_reduced_strong) * 0.1):]
 
 # Standardize the data
 scaler = MinMaxScaler()
-df_scaled = scaler.fit_transform(df_reduced_strong)
+#df_scaled = scaler.fit_transform(df_reduced_strong)
 
 #PCA for dimensionality reduction
 pca = PCA(n_components=2)
-df_pca = pca.fit_transform(df_scaled)
-#df_pca = pca.fit_transform(df_reduced_strong)
+#df_pca = pca.fit_transform(df_scaled)
+df_pca = pca.fit_transform(df_reduced_strong)
 df_reduced_strong['PCA1'] = df_pca[:, 0]
 df_reduced_strong['PCA2'] = df_pca[:, 1]
 
@@ -104,18 +104,18 @@ best_params = None
 for perplexity in perplexities:
     for lr in learning_rates:
         tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="pca", n_iter=1000)
-        tsne_results = tsne.fit_transform(df_scaled)
-        #tsne_results = tsne.fit_transform(df_reduced_strong)
+        #tsne_results = tsne.fit_transform(df_scaled)
+        tsne_results = tsne.fit_transform(df_reduced_strong)
 
         # Compute Silhouette Score
-        silhouette_avg = silhouette_score(df_scaled, tsne_results[:, 0])  
-        #silhouette_avg = silhouette_score(df_reduced_strong, tsne_results[:, 0])  
+        #silhouette_avg = silhouette_score(df_scaled, tsne_results[:, 0])  
+        silhouette_avg = silhouette_score(df_reduced_strong, tsne_results[:, 0])  
         
         print(f"Perplexity: {perplexity}, Learning Rate: {lr}, Silhouette Score: {silhouette_avg:.4f}")
 
         if silhouette_avg > best_score:
-            df_tsne = tsne.fit_transform(df_scaled)
-            #df_tsne = tsne.fit_transform(df_reduced_strong)
+            #df_tsne = tsne.fit_transform(df_scaled)
+            df_tsne = tsne.fit_transform(df_reduced_strong)
             df_reduced_strong['TSNE1'] = df_tsne[:, 0]
             df_reduced_strong['TSNE2'] = df_tsne[:, 1]
 
@@ -148,7 +148,7 @@ X_sets = [
 Y = df_reduced_strong['Malware']
 
 # Scaling control: 1 = Apply scaler, 0 = No scaling
-scale = [1, 0, 0]
+scale = [0, 0, 0]
 
 print("----------------------------------------------------------------------------------------------")
 print("k-Nearest Neighbours")
@@ -220,8 +220,8 @@ df_scaled = best_scaler.fit_transform(df_validation)
 if best_reduction == 1:
     print("PCA SELECTED")
     pca = PCA(n_components=2)
-    df_pca = pca.fit_transform(df_scaled)
-    #df_pca = pca.fit_transform(X_val)
+    #df_pca = pca.fit_transform(df_scaled)
+    df_pca = pca.fit_transform(df_validation)
     df_validation['PCA1'] = df_pca[:, 0]
     df_validation['PCA2'] = df_pca[:, 1]
     
@@ -229,15 +229,16 @@ if best_reduction == 1:
 elif best_reduction == 2:
     print("TSNE SELECTED")
     tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="pca", n_iter=1000)
-    tsne_results = tsne.fit_transform(df_scaled)
-    #tsne_results = tsne.fit_transform(X_val)
+    #tsne_results = tsne.fit_transform(df_scaled)
+    tsne_results = tsne.fit_transform(df_validation)
     df_validation['TSNE1'] = tsne_results[:, 0]
     df_validation['TSNE2'] = tsne_results[:, 1]
 
     X_val = df_validation[['TSNE1', 'TSNE2']]
 else:
     print("NO METHOD SELECTED")
-    X_val = best_scaler.transform(df_validation)
+    #X_val = best_scaler.transform(df_validation)
+    X_val = df_validation
 
 y_val_pred = best_model.predict(X_val)
 acc = accuracy_score(y_val, y_val_pred)

@@ -1,0 +1,263 @@
+----------------------------------------------------------------------------------------------
+k-Nearest Neighbours
+----------------------------------------------------------------------------------------------
+Feature Set 1: No Reduction
+Accuracy: 0.9496
+Precision: 0.9700
+Recall: 0.9611
+Accuracy for KNN fold 0: 0.9495750708215297
+Accuracy: 0.9496
+Precision: 0.9646
+Recall: 0.9676
+Accuracy for KNN fold 1: 0.9495750708215297
+Accuracy: 0.9561
+Precision: 0.9673
+Recall: 0.9736
+Accuracy for KNN fold 2: 0.9560906515580736
+Accuracy: 0.9524
+Precision: 0.9663
+Recall: 0.9699
+Accuracy for KNN fold 3: 0.9524079320113314
+Accuracy: 0.9535
+Precision: 0.9671
+Recall: 0.9701
+Accuracy for KNN fold 4: 0.9535410764872522
+Accuracy: 0.9527
+Precision: 0.9665
+Recall: 0.9698
+Accuracy for KNN fold 5: 0.9526912181303117
+Accuracy: 0.9541
+Precision: 0.9716
+Recall: 0.9664
+Accuracy for KNN fold 6: 0.9541076487252125
+Accuracy: 0.9558
+Precision: 0.9715
+Recall: 0.9685
+Accuracy for KNN fold 7: 0.9558073654390935
+Accuracy: 0.9535
+Precision: 0.9674
+Recall: 0.9697
+Accuracy for KNN fold 8: 0.9535410764872522
+Accuracy: 0.9518
+Precision: 0.9654
+Recall: 0.9698
+Accuracy for KNN fold 9: 0.9518413597733711
+----------------------------------------------------------------------------------------------
+Confusion Matrix for KNN Fold 1:
+            Predicted Yes  Predicted No
+Actual Yes            859            77
+Actual No             101          2493
+Confusion Matrix for KNN Fold 2:
+            Predicted Yes  Predicted No
+Actual Yes            816            93
+Actual No              85          2536
+Confusion Matrix for KNN Fold 3:
+            Predicted Yes  Predicted No
+Actual Yes            834            86
+Actual No              69          2541
+Confusion Matrix for KNN Fold 4:
+            Predicted Yes  Predicted No
+Actual Yes            813            89
+Actual No              79          2549
+Confusion Matrix for KNN Fold 5:
+            Predicted Yes  Predicted No
+Actual Yes            839            86
+Actual No              78          2527
+Confusion Matrix for KNN Fold 6:
+            Predicted Yes  Predicted No
+Actual Yes            827            88
+Actual No              79          2536
+Confusion Matrix for KNN Fold 7:
+            Predicted Yes  Predicted No
+Actual Yes            840            74
+Actual No              88          2528
+Confusion Matrix for KNN Fold 8:
+            Predicted Yes  Predicted No
+Actual Yes            856            74
+Actual No              82          2518
+Confusion Matrix for KNN Fold 9:
+            Predicted Yes  Predicted No
+Actual Yes            842            85
+Actual No              79          2524
+Confusion Matrix for KNN Fold 10:
+            Predicted Yes  Predicted No
+Actual Yes            823            91
+Actual No              79          2537
+----------------------------------------------------------------------------------------------
+Mean Accuracy for KNN n=10: 0.9529178470254959
+----------------------------------------------------------------------------------------------
+Feature Set 2: PCA
+Accuracy: 0.9853
+Precision: 0.9927
+Recall: 0.9875
+Accuracy for KNN fold 0: 0.9852691218130312
+Accuracy: 0.9745
+Precision: 0.9870
+Recall: 0.9787
+Accuracy for KNN fold 1: 0.9745042492917847
+Accuracy: 0.9762
+Precision: 0.9875
+Recall: 0.9799
+Accuracy for KNN fold 2: 0.9762039660056657
+Accuracy: 0.9802
+Precision: 0.9896
+Recall: 0.9836
+Accuracy for KNN fold 3: 0.9801699716713881
+Accuracy: 0.9830
+Precision: 0.9893
+Recall: 0.9878
+Accuracy for KNN fold 4: 0.9830028328611898
+Accuracy: 0.9790
+Precision: 0.9872
+Recall: 0.9842
+Accuracy for KNN fold 5: 0.9790368271954675
+Accuracy: 0.9802
+Precision: 0.9892
+Recall: 0.9839
+Accuracy for KNN fold 6: 0.9801699716713881
+Accuracy: 0.9785
+Precision: 0.9880
+Recall: 0.9827
+Accuracy for KNN fold 7: 0.9784702549575071
+Accuracy: 0.9771
+Precision: 0.9896
+Recall: 0.9795
+Accuracy for KNN fold 8: 0.9770538243626062
+Accuracy: 0.9782
+Precision: 0.9869
+Recall: 0.9835
+Accuracy for KNN fold 9: 0.978186968838527
+----------------------------------------------------------------------------------------------
+Confusion Matrix for KNN Fold 1:
+            Predicted Yes  Predicted No
+Actual Yes            880            19
+Actual No              33          2598
+Confusion Matrix for KNN Fold 2:
+            Predicted Yes  Predicted No
+Actual Yes            867            34
+Actual No              56          2573
+Confusion Matrix for KNN Fold 3:
+            Predicted Yes  Predicted No
+Actual Yes            912            32
+Actual No              52          2534
+Confusion Matrix for KNN Fold 4:
+            Predicted Yes  Predicted No
+Actual Yes            879            27
+Actual No              43          2581
+Confusion Matrix for KNN Fold 5:
+            Predicted Yes  Predicted No
+Actual Yes            889            28
+Actual No              32          2581
+Confusion Matrix for KNN Fold 6:
+            Predicted Yes  Predicted No
+Actual Yes            902            33
+Actual No              41          2554
+Confusion Matrix for KNN Fold 7:
+            Predicted Yes  Predicted No
+Actual Yes            887            28
+Actual No              42          2573
+Confusion Matrix for KNN Fold 8:
+            Predicted Yes  Predicted No
+Actual Yes            893            31
+Actual No              45          2561
+Confusion Matrix for KNN Fold 9:
+            Predicted Yes  Predicted No
+Actual Yes            873            27
+Actual No              54          2576
+Confusion Matrix for KNN Fold 10:
+            Predicted Yes  Predicted No
+Actual Yes            888            34
+Actual No              43          2565
+----------------------------------------------------------------------------------------------
+Mean Accuracy for KNN n=10: 0.9792067988668555
+----------------------------------------------------------------------------------------------
+Feature Set 3: t-SNE
+Accuracy: 0.9975
+Precision: 0.9992
+Recall: 0.9973
+Accuracy for KNN fold 0: 0.9974504249291785
+Accuracy: 0.9955
+Precision: 0.9989
+Recall: 0.9951
+Accuracy for KNN fold 1: 0.9954674220963173
+Accuracy: 0.9975
+Precision: 0.9992
+Recall: 0.9973
+Accuracy for KNN fold 2: 0.9974504249291785
+Accuracy: 0.9943
+Precision: 0.9996
+Recall: 0.9928
+Accuracy for KNN fold 3: 0.9943342776203966
+Accuracy: 0.9977
+Precision: 0.9996
+Recall: 0.9973
+Accuracy for KNN fold 4: 0.9977337110481587
+Accuracy: 0.9969
+Precision: 0.9992
+Recall: 0.9965
+Accuracy for KNN fold 5: 0.9968838526912182
+Accuracy: 0.9966
+Precision: 0.9977
+Recall: 0.9977
+Accuracy for KNN fold 6: 0.996600566572238
+Accuracy: 0.9983
+Precision: 0.9992
+Recall: 0.9985
+Accuracy for KNN fold 7: 0.998300283286119
+Accuracy: 0.9966
+Precision: 0.9985
+Recall: 0.9969
+Accuracy for KNN fold 8: 0.996600566572238
+Accuracy: 0.9963
+Precision: 0.9985
+Recall: 0.9966
+Accuracy for KNN fold 9: 0.9963172804532577
+----------------------------------------------------------------------------------------------
+Confusion Matrix for KNN Fold 1:
+            Predicted Yes  Predicted No
+Actual Yes            912             2
+Actual No               7          2609
+Confusion Matrix for KNN Fold 2:
+            Predicted Yes  Predicted No
+Actual Yes            881             3
+Actual No              13          2633
+Confusion Matrix for KNN Fold 3:
+            Predicted Yes  Predicted No
+Actual Yes            905             2
+Actual No               7          2616
+Confusion Matrix for KNN Fold 4:
+            Predicted Yes  Predicted No
+Actual Yes            893             1
+Actual No              19          2617
+Confusion Matrix for KNN Fold 5:
+            Predicted Yes  Predicted No
+Actual Yes            936             1
+Actual No               7          2586
+Confusion Matrix for KNN Fold 6:
+            Predicted Yes  Predicted No
+Actual Yes            929             2
+Actual No               9          2590
+Confusion Matrix for KNN Fold 7:
+            Predicted Yes  Predicted No
+Actual Yes            937             6
+Actual No               6          2581
+Confusion Matrix for KNN Fold 8:
+            Predicted Yes  Predicted No
+Actual Yes            889             2
+Actual No               4          2635
+Confusion Matrix for KNN Fold 9:
+            Predicted Yes  Predicted No
+Actual Yes            913             4
+Actual No               8          2605
+Confusion Matrix for KNN Fold 10:
+            Predicted Yes  Predicted No
+Actual Yes            853             4
+Actual No               9          2664
+----------------------------------------------------------------------------------------------
+Mean Accuracy for KNN n=10: 0.9967138810198299
+----------------------------------------------------------------------------------------------
+TSNE SELECTED
+VALIDATION
+Accuracy: 0.6186
+Precision: 0.7897
+Recall: 0.6846
