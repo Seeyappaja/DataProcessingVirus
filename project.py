@@ -5,14 +5,14 @@ from sklearn.preprocessing import StandardScaler,MinMaxScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score, accuracy_score, confusion_matrix
-from sklearn.model_selection import train_test_split, KFold, cross_val_score
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score, recall_score
-from sklearn.utils import shuffle
 import numpy as np
 import warnings
 
+settings = [0,0]
 df = pd.read_csv('dataset_malwares.csv')
 warnings.filterwarnings("ignore")
 
@@ -69,20 +69,36 @@ for pair in strong_pairs.index:
     strong_pairs_columns.add(pair[0])
     strong_pairs_columns.add(pair[1])
 df_reduced_strong = df[list(strong_pairs_columns)]
-df_reduced_strong = shuffle(df_reduced_strong)
 
-df_validation = df_reduced_strong.iloc[:int(len(df_reduced_strong) * 0.1)]
-df_reduced_strong = df_reduced_strong[int(len(df_reduced_strong) * 0.1):]
 
+df_reduced_strong['Malware'].value_counts().plot(kind='bar', edgecolor='black')
+plt.xlabel('Unique Values')
+plt.ylabel('Count')
+plt.title(f'Occurance of Malware')
+plt.xticks(rotation=45)
+plt.show()
+
+Y = df_reduced_strong["Malware"]
+X = df_reduced_strong.drop(columns=["Malware"])
+
+df_reduced_strong, df_validation, df_reduced_strong_y, df_validation_y = train_test_split(X,Y, test_size=0.1, shuffle=True)
+df_reduced_strong["Malware"] = df_reduced_strong_y
 
 # Standardize the data
-scaler = MinMaxScaler()
-#df_scaled = scaler.fit_transform(df_reduced_strong)
+if settings[0] == 1:
+    if settings[1] == 0:
+        scaler = MinMaxScaler()
+    elif settings[1] == 1:
+        scaler = StandardScaler()
+    df_scaled = scaler.fit_transform(df_reduced_strong)
+
 
 #PCA for dimensionality reduction
 pca = PCA(n_components=2)
-#df_pca = pca.fit_transform(df_scaled)
-df_pca = pca.fit_transform(df_reduced_strong)
+if settings[0] == 1:
+    df_pca = pca.fit_transform(df_scaled)
+else:
+    df_pca = pca.fit_transform(df_reduced_strong)
 df_reduced_strong['PCA1'] = df_pca[:, 0]
 df_reduced_strong['PCA2'] = df_pca[:, 1]
 
@@ -104,18 +120,24 @@ best_params = None
 for perplexity in perplexities:
     for lr in learning_rates:
         tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="pca", n_iter=1000)
-        #tsne_results = tsne.fit_transform(df_scaled)
-        tsne_results = tsne.fit_transform(df_reduced_strong)
+        if settings[0] == 1:
+            tsne_results = tsne.fit_transform(df_scaled)
+        else:
+            tsne_results = tsne.fit_transform(df_reduced_strong)
 
         # Compute Silhouette Score
-        #silhouette_avg = silhouette_score(df_scaled, tsne_results[:, 0])  
-        silhouette_avg = silhouette_score(df_reduced_strong, tsne_results[:, 0])  
+        if settings[0] == 1:
+            silhouette_avg = silhouette_score(df_scaled, tsne_results[:, 0])  
+        else:
+            silhouette_avg = silhouette_score(df_reduced_strong, tsne_results[:, 0])  
         
         print(f"Perplexity: {perplexity}, Learning Rate: {lr}, Silhouette Score: {silhouette_avg:.4f}")
 
         if silhouette_avg > best_score:
-            #df_tsne = tsne.fit_transform(df_scaled)
-            df_tsne = tsne.fit_transform(df_reduced_strong)
+            if settings[0] == 1:
+                df_tsne = tsne.fit_transform(df_scaled)
+            else:
+                df_tsne = tsne.fit_transform(df_reduced_strong)
             df_reduced_strong['TSNE1'] = df_tsne[:, 0]
             df_reduced_strong['TSNE2'] = df_tsne[:, 1]
 
@@ -147,9 +169,6 @@ X_sets = [
 ]
 Y = df_reduced_strong['Malware']
 
-# Scaling control: 1 = Apply scaler, 0 = No scaling
-scale = [0, 0, 0]
-
 print("----------------------------------------------------------------------------------------------")
 print("k-Nearest Neighbours")
 print("----------------------------------------------------------------------------------------------")
@@ -169,7 +188,7 @@ for feature_set_idx, X in enumerate(X_sets):
         X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
 
         # Apply scaling only if scale[feature_set_idx] == 1
-        if scale[feature_set_idx] == 1:
+        if settings[0] == 1:
             X_train = scaler.fit_transform(X_train)
             X_test = scaler.transform(X_test)  # Use transform instead of fit_transform
 
@@ -188,8 +207,10 @@ for feature_set_idx, X in enumerate(X_sets):
         if acc > best_accuracy:
             best_accuracy = acc
             best_model = knn
-            best_scaler = scaler  # Save the corresponding scaler
             best_reduction = feature_set_idx
+            if(settings[0] == 1):
+                best_scaler = scaler 
+
 
         # Store confusion matrix
         confusion_matrices_KNN.append(pd.DataFrame(
@@ -213,15 +234,17 @@ for feature_set_idx, X in enumerate(X_sets):
     print(f'Mean Accuracy for KNN n={neighbors}: {mean_accuracy}')
     print("----------------------------------------------------------------------------------------------")
 
-y_val = df_validation['Malware']
-df_validation = df_validation.drop(columns=['Malware'])
-df_scaled = best_scaler.fit_transform(df_validation)
+y_val = df_validation_y
+if settings[0] == 1:
+    df_scaled = best_scaler.fit_transform(df_validation)
 
 if best_reduction == 1:
     print("PCA SELECTED")
     pca = PCA(n_components=2)
-    #df_pca = pca.fit_transform(df_scaled)
-    df_pca = pca.fit_transform(df_validation)
+    if settings[0] == 1:
+        df_pca = pca.fit_transform(df_scaled)
+    else:
+        df_pca = pca.fit_transform(df_validation)
     df_validation['PCA1'] = df_pca[:, 0]
     df_validation['PCA2'] = df_pca[:, 1]
     
@@ -229,23 +252,75 @@ if best_reduction == 1:
 elif best_reduction == 2:
     print("TSNE SELECTED")
     tsne = TSNE(n_components=2, perplexity=perplexity, learning_rate=lr, random_state=42, init="pca", n_iter=1000)
-    #tsne_results = tsne.fit_transform(df_scaled)
-    tsne_results = tsne.fit_transform(df_validation)
+    if settings[0] == 1:
+        tsne_results = tsne.fit_transform(df_scaled)
+    else:
+        tsne_results = tsne.fit_transform(df_validation)
     df_validation['TSNE1'] = tsne_results[:, 0]
     df_validation['TSNE2'] = tsne_results[:, 1]
 
     X_val = df_validation[['TSNE1', 'TSNE2']]
 else:
     print("NO METHOD SELECTED")
-    #X_val = best_scaler.transform(df_validation)
-    X_val = df_validation
+    if settings[0] == 1:
+        X_val = best_scaler.transform(df_validation)
+    else:
+        X_val = df_validation
 
 y_val_pred = best_model.predict(X_val)
 acc = accuracy_score(y_val, y_val_pred)
 prec = precision_score(y_val, y_val_pred, zero_division=0)
 rec = recall_score(y_val, y_val_pred, zero_division=0)
 
+y_modified = np.where(
+    (y_val_pred != y_val) & (y_val_pred != y_train.min()), 2,  # False Positive → 2
+    np.where((y_val_pred != y_val) & (y_val_pred == y_train.min()), 3, y_val_pred)  # False Negative → 3
+)
+
+X_val['Malware'] = y_modified
+
+X_val["Malware"] = X_val["Malware"].replace({
+    0: "True Positive",
+    1: "True Negative",
+    2: "False Positive",
+    3: "False Negative"
+})
+
+df_reduced_strong["Malware"] = df_reduced_strong["Malware"].replace({
+    0: "True Positive",
+    1: "True Negative",
+    2: "False Positive",
+    3: "False Negative"
+})
+
 print("VALIDATION")
 print(f'Accuracy: {acc:.4f}')
 print(f'Precision: {prec:.4f}')
 print(f'Recall: {rec:.4f}')
+
+if best_reduction == 1:
+    plt.figure(figsize=(12, 10))
+    sns.scatterplot(x='PCA1', y='PCA2', hue='Malware', data=df_reduced_strong, palette='viridis', alpha=0.5)
+    sns.scatterplot(x='PCA1', y='PCA2', hue='Malware', data=X_val, palette='viridis')
+    plt.title('Original vs predicted validation placement')
+    plt.xlabel('PCA1')
+    plt.ylabel('PCA2')
+    plt.legend()
+    plt.show()
+elif best_reduction == 2:
+    plt.figure(figsize=(12, 10))
+    sns.scatterplot(x='TSNE1', y='TSNE2', hue='Malware', data=df_reduced_strong, palette='viridis', alpha=0.5)
+    sns.scatterplot(x='TSNE1', y='TSNE2', hue='Malware', data=X_val, palette='viridis')
+    plt.title('Original vs predicted validation placement')
+    plt.xlabel('PCA1')
+    plt.ylabel('PCA2')
+    plt.legend()
+    plt.show()
+else:
+    df_reduced_strong['Malware'].value_counts().plot(kind='bar', edgecolor='black')
+    X_val['Malware'].value_counts().plot(kind='bar', edgecolor='green', color='green')
+    plt.xlabel('Unique Values')
+    plt.ylabel('Count')
+    plt.title(f'Occurance of Malware')
+    plt.xticks(rotation=45)
+    plt.show()
